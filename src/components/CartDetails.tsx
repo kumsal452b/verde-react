@@ -1,8 +1,12 @@
 import axios from "axios";
 import React, { useEffect, useState } from "react";
 import { MdArrowBackIosNew } from "react-icons/md";
+import { useDispatch, useSelector } from "react-redux";
 import { useNavigate, useNavigation, useParams } from "react-router-dom";
-
+import { createCart, deleteCart, updateCart } from "../store/cart-slice";
+let isEdit = false;
+//For async protection
+let isRendering=false;
 function CartDetails() {
   var { id } = useParams();
   const [item, setItem] = useState<any>();
@@ -10,48 +14,90 @@ function CartDetails() {
   const [showModal, setShowModal] = React.useState(false);
   const [showEditModal, setEditShowModal] = React.useState(false);
   const navigate = useNavigate();
-  debugger;
+  const dispatch = useDispatch();
+  const items = useSelector((store: any) => store.cart.items);
   useEffect(() => {
+    isRendering=true;
     getCurrentCart();
+    return ()=>{
+      isRendering=false
+    }
   }, []);
   const getBack = () => {
     navigate("/");
   };
   const getCurrentCart = () => {
+    let theItem=items.filter((item:any)=>item.id===Number(id))
     axios
       .get(`https://jsonplaceholder.typicode.com/posts/${id}`)
       .then((res) => {
-        debugger;
-        setItem(res.data);
-        setCurrentItem(res.data);
+        if(isRendering){
+          setItem(theItem[0]);
+          setCurrentItem(theItem[0]);
+        }
       })
       .catch((err) => {
-        debugger;
+        if(isRendering){
+          setItem(theItem[0]);
+          setCurrentItem(theItem[0]);
+        }
         console.log(err);
       });
   };
   const remove = () => {
     axios
-    .delete(`https://jsonplaceholder.typicode.com/posts/${id}`)
-    .then((res) => {
-        debugger
-      navigate("/");
-    })
-    .catch((err) => {
-      console.log(err);
-    });
-  };
-  const update = () => {
-    axios
-      .put(`https://jsonplaceholder.typicode.com/posts/${id}`, currentItem)
+      .delete(`https://jsonplaceholder.typicode.com/posts/${id}`)
       .then((res) => {
-        setEditShowModal(false);
-        getCurrentCart();
+        navigate("/");
+        dispatch(deleteCart({ id: id }));
       })
       .catch((err) => {
-        prompt("Error occured")
         console.log(err);
       });
+  };
+  const update = () => {
+    if (isEdit) {
+      axios
+        .put(`https://jsonplaceholder.typicode.com/posts/${id}`, currentItem)
+        .then((res) => {
+          setEditShowModal(false);
+          dispatch(updateCart(currentItem));
+          if(isRendering){
+            setItem(currentItem)
+          }
+        })
+        .catch((err) => {
+          setEditShowModal(false);
+          dispatch(updateCart(currentItem));
+          if(isRendering){
+            setItem(currentItem)
+          }
+          console.log(err);
+        });
+    } else {
+      currentItem.id= Math.floor(Math.random() * 10000);
+      axios
+        .post(`https://jsonplaceholder.typicode.com/posts`, currentItem)
+        .then((res) => {
+          setEditShowModal(false);
+          dispatch(createCart(currentItem));
+          navigate("/");
+        })
+        .catch((err) => {
+          alert("Error occured");
+          console.log(err);
+        });
+    }
+  };
+  const handleOfCreate = () => {
+    setCurrentItem({});
+    setEditShowModal(true);
+    isEdit = false;
+  };
+  const handleOfEdit = () => {
+    setCurrentItem(item);
+    setEditShowModal(true);
+    isEdit = true;
   };
   return (
     <div className="flex flex-col justify-center items-center">
@@ -62,7 +108,10 @@ function CartDetails() {
         >
           <MdArrowBackIosNew size={25} />
         </div>
-        <button className="bg-blue-600 rounded-sm p-2 text-white">
+        <button
+          className="bg-blue-600 rounded-sm p-2 text-white"
+          onClick={handleOfCreate}
+        >
           Create A Post
         </button>
       </div>
@@ -76,7 +125,7 @@ function CartDetails() {
         <div className="p-5 flex flex-row justify-between w-full">
           <button
             className="bg-blue-600 rounded-lg p-2 text-white"
-            onClick={() => setEditShowModal(true)}
+            onClick={handleOfEdit}
           >
             Update
           </button>
@@ -143,7 +192,9 @@ function CartDetails() {
               <div className="border-0 rounded-lg shadow-lg relative flex flex-col w-full bg-white outline-none focus:outline-none">
                 {/*header*/}
                 <div className="flex items-start justify-between p-5 border-b border-solid border-slate-200 rounded-t">
-                  <h3 className="text-3xl font-semibold">Edit Alert</h3>
+                  <h3 className="text-3xl font-semibold">
+                    {isEdit ? "Edit" : "Create"}
+                  </h3>
                   <button
                     className="p-1 ml-auto bg-transparent border-0 text-black opacity-5 float-right text-3xl leading-none font-semibold outline-none focus:outline-none"
                     onClick={() => setShowModal(false)}

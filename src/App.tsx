@@ -3,7 +3,7 @@ import { useSelector, useDispatch } from "react-redux";
 import MainPage from "./pages/MainPage";
 import LoginPage from "./pages/LoginPage";
 import axios from "axios";
-import cartSlice, { cartAdd } from "./store/cart-slice";
+import cartSlice, { calculateTotal, cartAdd } from "./store/cart-slice";
 import { useEffect } from "react";
 function App() {
   const current_user = useSelector((store: any) => store.auth.current_user);
@@ -13,6 +13,7 @@ function App() {
     .get("https://jsonplaceholder.typicode.com/posts")
     .then((res) => {
       dispatch(cartAdd(res.data));
+      dispatch(calculateTotal())
     })
     .catch((err) => {
       console.log(err);

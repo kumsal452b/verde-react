@@ -6,7 +6,7 @@ import Header from "../components/header";
 
 export default function MainPage() {
   return (
-    <div className="w-full h-full">
+    <div className="w-full h-full overflow-hidden">
       <Header />
       <div className="">
         <BrowserRouter>
